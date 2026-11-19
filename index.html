@@ -10,12 +10,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Cutive+Mono&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script>
+  // Animate only when motion is welcome. The page stays hidden until the
+  // intro is ready (or 3s pass), so nothing flashes in its final state first.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('anim');
+    setTimeout(() => document.documentElement.classList.add('ready'), 3000);
+  }
+</script>
 <style>
   :root {
     --ink: #201e1f;
-    --ink-2: #2b2829;
     --paper: #f4efe8;
-    --paper-2: #e6e2db;
     --muted: #8d8a85;
     --accent: #fc4109;
     --cobalt: #0b41c2;
@@ -29,98 +35,110 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
+  html.anim { scroll-behavior: auto; }
+  html.anim body { visibility: hidden; }
+  html.anim.ready body { visibility: visible; }
   body {
-    background: var(--ink);
-    color: var(--paper);
-    font-family: var(--f-display);
-    font-variation-settings: "opsz" 24;
-    font-weight: 300;
-    font-size: clamp(17px, 1.3vw, 20px);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    background: var(--ink); color: var(--paper);
+    font-family: var(--f-display); font-variation-settings: "opsz" 24; font-weight: 300;
+    font-size: clamp(17px, 1.3vw, 20px); line-height: 1.5;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
   }
   a { color: inherit; }
+  button { font: inherit; border: 0; cursor: pointer; }
   em, .serif { font-family: var(--f-serif); font-style: italic; font-weight: 400; letter-spacing: 0; }
-  .mono { font-family: var(--f-mono); }
   .md { font-family: var(--f-mono); color: var(--accent); font-weight: 400; letter-spacing: 0; margin-right: .45em; }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 0 var(--pad); }
+  .muted { color: var(--muted); }
+  .meta { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  /* split-text helpers (added by the script) */
+  .wd { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .06em; margin-bottom: -.06em; }
+  .wi, .ch { display: inline-block; will-change: transform; }
 
-  /* film grain over everything */
-  .grain {
-    position: fixed; inset: 0; z-index: 80; pointer-events: none; opacity: .07;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
+  /* film grain */
+  .grain { position: fixed; inset: -50%; z-index: 80; pointer-events: none; opacity: .07;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  html.anim .grain { animation: grain 1s steps(6) infinite; }
+  @keyframes grain { 0%{transform:translate(0,0)} 20%{transform:translate(-4%,3%)} 40%{transform:translate(3%,-5%)} 60%{transform:translate(-6%,-2%)} 80%{transform:translate(5%,4%)} 100%{transform:translate(0,0)} }
 
-  /* HUD: floating pills */
-  .hud {
-    position: fixed; z-index: 60; top: 18px; left: var(--pad); right: var(--pad);
-    display: flex; justify-content: space-between; align-items: center; pointer-events: none;
-  }
+  .progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%; z-index: 70; }
+
+  /* HUD */
+  .hud { position: fixed; z-index: 60; top: 18px; left: var(--pad); right: var(--pad);
+    display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
   .hud > * { pointer-events: auto; display: flex; gap: 8px; }
-  .pill {
-    display: inline-flex; align-items: center; gap: .6em; height: 40px; padding: 0 17px;
+  .pill { display: inline-flex; align-items: center; gap: .6em; height: 40px; padding: 0 17px;
     border-radius: 999px; font-size: 14px; font-weight: 700; letter-spacing: -.01em;
     background: var(--paper); color: var(--ink); text-decoration: none; white-space: nowrap;
-    transition: background-color .3s var(--ease), color .3s var(--ease);
-  }
+    transition: background-color .5s var(--ease), color .5s var(--ease); }
   .pill:hover { background: var(--accent); color: var(--paper); }
-  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
   .pill:hover .dot { background: var(--paper); }
+  html.hud-ink .hud .pill { background: var(--ink); color: var(--paper); }
+  html.hud-ink .hud .pill:hover { background: var(--accent); }
+  .crumb { overflow: hidden; font-family: var(--f-mono); font-weight: 400; }
+  .crumb span { display: inline-block; }
+  .crumb, .watch { display: none !important; }
+  html.anim .crumb, html.anim .watch { display: inline-flex !important; }
+  .watch .bars { display: inline-flex; gap: 3px; }
+  .watch .bars i { width: 3px; height: 10px; background: currentColor; border-radius: 1px; }
+  .watch.on .bars i { animation: eq .8s ease-in-out infinite alternate; }
+  .watch.on .bars i:nth-child(2) { animation-delay: -.4s; }
+  @keyframes eq { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
 
   /* Hero: cobalt wall over a paper floor */
-  .hero {
-    position: relative; min-height: 100svh; display: flex; flex-direction: column;
-    background: radial-gradient(120% 90% at 18% 0%, #ffffff14, transparent 60%), var(--cobalt);
-    overflow: hidden;
-  }
-  .hero .wall { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 120px var(--pad) 40px; max-width: 1240px; width: 100%; margin: 0 auto; }
-  .hero h1 {
-    font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.045em; line-height: .88;
-    font-size: clamp(64px, 14vw, 220px); color: var(--paper);
-  }
-  .hero h1 .ext { color: var(--accent); }
-  .hero blockquote { margin-top: clamp(24px, 4vw, 48px); font-family: var(--f-mono); font-size: clamp(15px, 1.45vw, 21px); line-height: 1.35; letter-spacing: .02em; }
+  .hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; background: var(--ink); }
+  .wall { position: absolute; inset: 0 0 56px 0; display: flex; align-items: center;
+    background: radial-gradient(120% 90% at 18% 0%, #ffffff14, transparent 60%), var(--cobalt); }
+  .wall-in { width: 100%; padding-top: 40px; }
+  .title { font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.045em; line-height: .88;
+    font-size: clamp(64px, 14vw, 220px); color: var(--paper); }
+  .title .tl { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 .02em .04em 0; }
+  .title .ext { display: inline-block; color: var(--accent); }
+  .hero blockquote { margin-top: clamp(24px, 4vw, 48px); font-family: var(--f-mono); font-size: clamp(14px, 1.45vw, 21px); line-height: 1.35; letter-spacing: .02em; }
   .hero blockquote p { margin-bottom: .4em; }
-  .hero .floor {
-    background: var(--paper); color: var(--ink); padding: 18px var(--pad);
-    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-    font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
-  }
-  .hero .floor a { text-decoration: none; }
-  .hero .floor a:hover { color: var(--accent); }
-  .hint {
-    position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%);
-    font-family: var(--f-mono); font-size: 12px; opacity: .8; display: flex; flex-direction: column; align-items: center; gap: 8px;
-  }
+  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: var(--paper); color: var(--ink);
+    padding: 0 var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+  .floor a { text-decoration: none; }
+  .floor a:hover { color: var(--accent); }
+  .hint { position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); color: var(--paper);
+    font-family: var(--f-mono); font-size: 12px; opacity: .8; display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .hint i { width: 1px; height: 26px; background: currentColor; animation: drip 1.8s var(--ease) infinite; transform-origin: top; }
   @keyframes drip { 0% { transform: scaleY(0); } 60% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
 
-  /* Stats strip */
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid #ffffff1f; }
+  /* Statement: the dot strikes each word */
+  .say { position: relative; min-height: 100svh; display: flex; align-items: center; background: var(--ink); overflow: hidden; }
+  .say-in { width: 100%; }
+  .say-line { font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.045em; line-height: .95;
+    font-size: clamp(48px, 10vw, 160px); }
+  .say-line .w { display: inline-block; }
+  .say-line .per { color: var(--accent); }
+  .say-sub { margin-top: 32px; font-size: clamp(22px, 2.6vw, 38px); line-height: 1.2; max-width: 22em; opacity: .85; }
+  .say .meta { margin-bottom: 28px; }
+  .hop { position: absolute; left: 0; top: 0; width: clamp(12px, 1.6vw, 26px); height: clamp(12px, 1.6vw, 26px);
+    border-radius: 50%; background: var(--accent); display: none; z-index: 2; }
+  html.anim .hop { display: block; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #ffffff1f; border-bottom: 1px solid #ffffff1f; }
   .stat { padding: clamp(28px, 4vw, 56px) var(--pad); border-right: 1px solid #ffffff1f; }
   .stat:last-child { border-right: 0; }
-  .stat strong { display: block; font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.04em; line-height: 1; font-size: clamp(40px, 5.5vw, 84px); }
+  .stat strong { display: block; font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.04em; line-height: 1; font-size: clamp(40px, 5.5vw, 84px); font-variant-numeric: tabular-nums; }
   .stat span { display: block; margin-top: 10px; font-family: var(--f-mono); font-size: 13px; color: var(--muted); letter-spacing: .02em; }
 
   /* Sections */
-  section { padding: clamp(80px, 12vw, 160px) 0; }
+  section.block { padding: clamp(80px, 12vw, 160px) 0; }
   section.paper { background: var(--paper); color: var(--ink); }
-  section.paper .muted, section.paper .meta { color: #5f5b57; }
+  section.paper .meta { color: #5f5b57; }
   .head { margin-bottom: clamp(40px, 6vw, 80px); }
-  h2 {
-    font-variation-settings: "opsz" 96; font-weight: 700; letter-spacing: -.04em; line-height: .95;
-    font-size: clamp(44px, 7vw, 120px);
-  }
-  .head p:not(.meta) { margin-top: 18px; font-family: var(--f-serif); font-style: italic; font-size: clamp(22px, 2.6vw, 38px); line-height: 1.15; opacity: .85; }
-  .muted { color: var(--muted); }
-  .meta { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  h2 { font-variation-settings: "opsz" 96; font-weight: 700; letter-spacing: -.04em; line-height: .95; font-size: clamp(44px, 7vw, 120px); }
+  .head .sub { margin-top: 18px; font-family: var(--f-serif); font-style: italic; font-size: clamp(22px, 2.6vw, 38px); line-height: 1.15; opacity: .85; }
+  .head .meta { margin-bottom: 14px; }
 
   /* Featured (Whales) */
-  .feature {
-    display: grid; grid-template-columns: 1.3fr 1fr; gap: clamp(28px, 4vw, 64px);
-    background: var(--accent); color: var(--ink); border-radius: 28px; padding: clamp(28px, 5vw, 72px);
-  }
+  .feature { display: grid; grid-template-columns: 1.3fr 1fr; gap: clamp(28px, 4vw, 64px);
+    background: var(--accent); color: var(--ink); border-radius: 28px; padding: clamp(28px, 5vw, 72px); }
   .feature .meta { color: var(--ink); opacity: .75; }
   .feature h3 { font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.045em; line-height: .9; font-size: clamp(56px, 9vw, 150px); margin: 14px 0 22px; }
   .feature p { font-size: clamp(18px, 1.5vw, 22px); line-height: 1.45; }
@@ -132,14 +150,12 @@
   .feature .pill { background: var(--ink); color: var(--paper); align-self: flex-start; }
   .feature .pill:hover { background: var(--paper); color: var(--ink); }
 
-  /* Project list: numbered entries */
+  /* Projects */
   .projects { margin-top: clamp(48px, 7vw, 96px); }
-  .proj {
-    display: grid; grid-template-columns: 90px 1fr 1fr; gap: clamp(16px, 3vw, 48px);
-    padding: clamp(28px, 4vw, 48px) 0; border-top: 1px solid #ffffff26;
-  }
+  .proj { display: grid; grid-template-columns: 90px 1fr 1fr; gap: clamp(16px, 3vw, 48px); padding: clamp(28px, 4vw, 48px) 0; border-top: 1px solid #ffffff26; }
   .proj:last-child { border-bottom: 1px solid #ffffff26; }
-  .proj .n { font-family: var(--f-mono); color: var(--accent); font-size: 15px; padding-top: 10px; }
+  .proj .n { font-family: var(--f-mono); color: var(--accent); font-size: 15px; padding-top: 10px; transition: transform .5s var(--ease); }
+  .proj:hover .n { transform: translateX(8px); }
   .proj h3 { font-variation-settings: "opsz" 96; font-weight: 700; letter-spacing: -.035em; line-height: 1; font-size: clamp(32px, 4vw, 60px); margin-top: 8px; transition: color .3s var(--ease); }
   .proj:hover h3 { color: var(--accent); }
   .proj p { color: #d9d3cb; }
@@ -153,7 +169,7 @@
   .links a::after { content: " ↗"; color: var(--accent); }
   .links a:hover { color: var(--accent); }
 
-  /* Experience on paper */
+  /* Experience */
   .role { display: grid; grid-template-columns: 240px 1fr; gap: clamp(16px, 3vw, 48px); padding: 36px 0; border-top: 1px solid #201e1f2e; }
   .role:last-child { border-bottom: 1px solid #201e1f2e; }
   .role h3 { font-variation-settings: "opsz" 96; font-weight: 700; letter-spacing: -.03em; font-size: clamp(26px, 2.8vw, 40px); line-height: 1.05; }
@@ -162,7 +178,8 @@
 
   /* Toolkit */
   .kit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .kit > div { border-radius: 24px; padding: clamp(24px, 3vw, 40px); color: var(--ink); }
+  .kit > div { border-radius: 24px; padding: clamp(24px, 3vw, 40px); color: var(--ink); transition: transform .6s var(--ease); }
+  .kit > div:hover { transform: rotate(-1.5deg) scale(1.02); }
   .kit > div:nth-child(1) { background: var(--lilac); }
   .kit > div:nth-child(2) { background: var(--yellow); }
   .kit > div:nth-child(3) { background: var(--paper); }
@@ -174,12 +191,14 @@
   .edu h3 { font-variation-settings: "opsz" 96; font-weight: 700; letter-spacing: -.035em; font-size: clamp(30px, 4vw, 56px); line-height: 1; margin-top: 14px; }
   .edu p { margin-top: 12px; }
   .gpa { text-align: right; }
-  .gpa strong { display: block; font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.05em; line-height: .85; font-size: clamp(96px, 14vw, 220px); color: var(--accent); }
+  .gpa strong { display: block; font-variation-settings: "opsz" 96; font-weight: 800; letter-spacing: -.05em; line-height: .85; font-size: clamp(96px, 14vw, 220px); color: var(--accent); font-variant-numeric: tabular-nums; }
 
-  /* Contact on cobalt */
-  .contact { background: var(--cobalt); text-align: left; }
+  /* Contact */
+  .contact { background: var(--cobalt); }
+  .contact .meta { color: var(--paper); }
   .contact h2 { font-size: clamp(56px, 11vw, 180px); }
-  .contact h2 .per { color: var(--accent); }
+  .contact h2 .per { color: var(--accent); display: inline-block; }
+  .contact .sub { margin-top: 18px; font-size: clamp(22px, 2.6vw, 38px); }
   .contact .ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; }
   .contact .pill { height: 48px; padding: 0 22px; font-size: 16px; }
 
@@ -188,15 +207,10 @@
   footer a { text-decoration: none; }
   footer a:hover { color: var(--accent); }
 
-  /* reveal */
-  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
-  .reveal.in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) {
-    .reveal { opacity: 1; transform: none; transition: none; }
-    .hint i { animation: none; }
     html { scroll-behavior: auto; }
+    .hint i { animation: none; }
   }
-
   @media (max-width: 900px) {
     .feature, .edu { grid-template-columns: 1fr; }
     .gpa { text-align: left; }
@@ -209,19 +223,25 @@
     .role { grid-template-columns: 1fr; gap: 8px; }
   }
   @media (max-width: 600px) {
-    .hud .hide-sm { display: none; }
+    .hud .hide-sm, html.anim .hud .crumb { display: none !important; }
+    .say-line { font-size: 15vw; }
     .pill { height: 36px; padding: 0 13px; font-size: 13px; }
-    .hero blockquote p { white-space: normal; }
     .hint { display: none; }
+    .floor .hide-sm { display: none; }
   }
 </style>
 </head>
 <body>
 <div class="grain" aria-hidden="true"></div>
+<div class="progress" aria-hidden="true"></div>
 
 <header class="hud">
-  <div><a class="pill" href="#top">shaun.md <span class="dot"></span></a></div>
+  <div>
+    <a class="pill" href="#top">shaun.md <span class="dot"></span></a>
+    <span class="pill crumb hide-sm" aria-hidden="true"><span>## home</span></span>
+  </div>
   <nav aria-label="Sections">
+    <button class="pill watch" type="button" aria-pressed="false"><span class="lbl">watch</span><span class="bars"><i></i><i></i></span></button>
     <a class="pill hide-sm" href="#work">work</a>
     <a class="pill hide-sm" href="#experience">experience</a>
     <a class="pill hide-sm" href="#toolkit">toolkit</a>
@@ -229,48 +249,60 @@
   </nav>
 </header>
 
-<main id="top">
-  <div class="hero">
+<main>
+  <section class="hero" id="top" data-crumb="home">
     <div class="wall">
-      <h1>Shaun<br>Andrade<span class="ext">.</span></h1>
-      <blockquote>
-        <p><span class="md">&gt;</span>software that thinks. built to ship.</p>
-        <p><span class="md">&gt;</span>cs student at umbc. multi-agent systems, fine-tuned models,</p>
-        <p><span class="md">&gt;</span>and research with vision transformers.</p>
-      </blockquote>
+      <div class="wall-in wrap">
+        <h1 class="title" aria-label="Shaun Andrade."><span class="tl">Shaun</span><br><span class="tl">Andrade</span><span class="ext">.</span></h1>
+        <blockquote>
+          <p><span class="md">&gt;</span>software that thinks. built to ship.</p>
+          <p><span class="md">&gt;</span>cs student at umbc. multi-agent systems,</p>
+          <p><span class="md">&gt;</span>fine-tuned models, vision transformers.</p>
+        </blockquote>
+      </div>
     </div>
     <p class="hint" aria-hidden="true"><span>scroll</span><i></i></p>
     <div class="floor">
       <span>Shaun Salvador Andrade</span>
-      <span>Baltimore, MD · <a href="https://github.com/ShaunTheKing" target="_blank" rel="noopener">GitHub ↗</a></span>
+      <span><span class="hide-sm">Baltimore, MD · </span><a href="https://github.com/ShaunTheKing" target="_blank" rel="noopener">GitHub ↗</a></span>
     </div>
+  </section>
+
+  <section class="say" data-crumb="manifesto">
+    <div class="say-in wrap">
+      <p class="meta"><span class="md">##</span>what I do</p>
+      <p class="say-line"><span class="w">Software</span> <span class="w">that</span> <span class="w">thinks</span><span class="per">.</span></p>
+      <p class="say-line"><span class="w">Built</span> <span class="w">to</span> <span class="w">ship</span><span class="per">.</span></p>
+      <p class="say-sub serif">Computer Science student at UMBC building multi-agent systems, fine-tuning large models, and publishing research with Vision Transformers.</p>
+    </div>
+    <i class="hop" aria-hidden="true"></i>
+  </section>
+
+  <div class="stats">
+    <div class="stat"><strong data-count="250" data-suffix="+">250+</strong><span>model downloads</span></div>
+    <div class="stat"><strong data-count="115" data-suffix="k+">115k+</strong><span>loans analyzed with SQL risk-return modeling</span></div>
+    <div class="stat"><strong data-count="625" data-suffix="+">625+</strong><span>tests written</span></div>
+    <div class="stat"><strong data-count="3.8" data-dec="1">3.8</strong><span>GPA at UMBC</span></div>
   </div>
 
-  <div class="stats reveal">
-    <div class="stat"><strong>250+</strong><span>model downloads</span></div>
-    <div class="stat"><strong>115k+</strong><span>loans analyzed with SQL risk-return modeling</span></div>
-    <div class="stat"><strong>625+</strong><span>tests written</span></div>
-    <div class="stat"><strong>3.8</strong><span>GPA at UMBC</span></div>
-  </div>
-
-  <section id="work">
+  <section id="work" class="block" data-crumb="work">
     <div class="wrap">
-      <div class="head reveal">
+      <div class="head">
         <p class="meta"><span class="md">##</span>featured work</p>
-        <h2>Agents, models,<br>and apps.</h2>
-        <p>from research lab to production.</p>
+        <h2 class="split">Agents, models,<br>and apps.</h2>
+        <p class="sub">from research lab to production.</p>
       </div>
 
-      <div class="feature reveal">
+      <div class="feature">
         <div>
           <p class="meta">In development · Oct 2026</p>
-          <h3>Whales.</h3>
+          <h3 class="split">Whales.</h3>
           <p>A local-first multi-agent workspace, still in development. Every agent is an isolated context with its own plugins, memory, skills, and tools — built as a CLI, a React web UI, and a macOS Electron app.</p>
         </div>
         <div class="side">
           <div class="nums">
-            <div><strong>625+</strong><span>tests</span></div>
-            <div><strong>3</strong><span>surfaces: CLI · Web · macOS</span></div>
+            <div><strong data-count="625" data-suffix="+">625+</strong><span>tests</span></div>
+            <div><strong data-count="3">3</strong><span>surfaces: CLI · Web · macOS</span></div>
           </div>
           <p class="note">Keys stored in the macOS Keychain. Web fetching that blocks private and loopback addresses. A plugin marketplace with pinned-commit, hash-verified installs.</p>
           <a class="pill" href="https://github.com/ShaunTheKing/whales" target="_blank" rel="noopener">View on GitHub ↗</a>
@@ -278,7 +310,7 @@
       </div>
 
       <div class="projects">
-        <article class="proj reveal">
+        <article class="proj">
           <div class="n">### 01</div>
           <div>
             <p class="meta">Machine Learning · 2026</p>
@@ -296,7 +328,7 @@
           </div>
         </article>
 
-        <article class="proj reveal">
+        <article class="proj">
           <div class="n">### 02</div>
           <div>
             <p class="meta">Research · UMBC</p>
@@ -314,7 +346,7 @@
           </div>
         </article>
 
-        <article class="proj reveal">
+        <article class="proj">
           <div class="n">### 03</div>
           <div>
             <p class="meta">Data · Analytics</p>
@@ -327,7 +359,7 @@
           </div>
         </article>
 
-        <article class="proj reveal">
+        <article class="proj">
           <div class="n">### 04</div>
           <div>
             <p class="meta">Hackathon · HackUMBC 2025</p>
@@ -343,7 +375,7 @@
           </div>
         </article>
 
-        <article class="proj reveal">
+        <article class="proj">
           <div class="n">### 05</div>
           <div>
             <p class="meta">Full-stack · 2024</p>
@@ -356,7 +388,7 @@
           </div>
         </article>
 
-        <article class="proj reveal">
+        <article class="proj">
           <div class="n">### 06</div>
           <div>
             <p class="meta">Automation</p>
@@ -372,13 +404,13 @@
     </div>
   </section>
 
-  <section id="experience" class="paper">
+  <section id="experience" class="block paper" data-crumb="experience">
     <div class="wrap">
-      <div class="head reveal">
+      <div class="head">
         <p class="meta"><span class="md">##</span>experience</p>
-        <h2>Where I've<br>been <em>working</em>.</h2>
+        <h2 class="split">Where I've<br>been <em>working</em>.</h2>
       </div>
-      <div class="role reveal">
+      <div class="role">
         <p class="meta">Oct 2025 – Aug 2026</p>
         <div>
           <h3>Undergraduate Researcher</h3>
@@ -387,7 +419,7 @@
           <p>Trained the ViT-based BehaviorScope classifier, reaching 82.7% macro-average accuracy across three behavior classes.</p>
         </div>
       </div>
-      <div class="role reveal">
+      <div class="role">
         <p class="meta">Jun 2026 – Present</p>
         <div>
           <h3>Financial Aid Help Desk</h3>
@@ -396,7 +428,7 @@
           <p>Maintain accurate student records in compliance with FERPA and data-handling standards.</p>
         </div>
       </div>
-      <div class="role reveal">
+      <div class="role">
         <p class="meta">May 2026 – Aug 2026</p>
         <div>
           <h3>Summer Kindergarten Teacher</h3>
@@ -407,24 +439,24 @@
     </div>
   </section>
 
-  <section id="toolkit">
+  <section id="toolkit" class="block" data-crumb="toolkit">
     <div class="wrap">
-      <div class="head reveal">
+      <div class="head">
         <p class="meta"><span class="md">##</span>the toolkit</p>
-        <h2>What I reach for.</h2>
-        <p>from training runs to production.</p>
+        <h2 class="split">What I reach for.</h2>
+        <p class="sub">from training runs to production.</p>
       </div>
       <div class="kit">
-        <div class="reveal">
+        <div>
           <p class="meta">Languages</p>
           <h3>Python. TypeScript. SQL.</h3>
         </div>
-        <div class="reveal">
+        <div>
           <p class="meta">Machine Learning</p>
           <h3>Models that learn.</h3>
           <div class="tags"><span class="tag">PyTorch</span><span class="tag">Vision Transformers</span><span class="tag">Fine-Tuning</span><span class="tag">Computer Vision</span><span class="tag">Hugging Face</span></div>
         </div>
-        <div class="reveal">
+        <div>
           <p class="meta">Frameworks &amp; Tools</p>
           <h3>Apps that ship.</h3>
           <div class="tags"><span class="tag">React</span><span class="tag">Node.js</span><span class="tag">Electron</span><span class="tag">Streamlit</span><span class="tag">MySQL</span><span class="tag">SQLite</span><span class="tag">Git</span><span class="tag">Linux</span><span class="tag">Vercel</span></div>
@@ -433,25 +465,25 @@
     </div>
   </section>
 
-  <section class="paper">
-    <div class="wrap edu reveal">
+  <section class="block paper" data-crumb="education">
+    <div class="wrap edu">
       <div>
         <p class="meta"><span class="md">##</span>education</p>
         <h3>University of Maryland, Baltimore County</h3>
         <p>B.S. in Computer Science · Expected May 2029 · Baltimore, MD</p>
       </div>
       <div class="gpa">
-        <strong>3.8</strong>
+        <strong data-count="3.8" data-dec="1">3.8</strong>
         <p class="meta">GPA out of 4.0</p>
       </div>
     </div>
   </section>
 
-  <section id="contact" class="contact">
-    <div class="wrap reveal">
-      <p class="meta" style="color:var(--paper)"><span class="md">##</span>contact</p>
-      <h2>Let's build<br>something<span class="per">.</span></h2>
-      <p class="head"><span class="serif" style="font-size:clamp(22px,2.6vw,38px)">open to internships and research opportunities.</span></p>
+  <section id="contact" class="block contact" data-crumb="contact">
+    <div class="wrap">
+      <p class="meta"><span class="md">##</span>contact</p>
+      <h2 class="split">Let's build<br>something<span class="per">.</span></h2>
+      <p class="sub serif">open to internships and research opportunities.</p>
       <div class="ctas">
         <a class="pill" href="mailto:shaunroshanti@gmail.com">Email me <span class="dot"></span></a>
         <a class="pill" href="https://linkedin.com/in/shaun-salvador-andrade" target="_blank" rel="noopener">LinkedIn ↗</a>
@@ -468,12 +500,226 @@
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
 <script>
-  document.getElementById('yr').textContent = new Date().getFullYear();
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+(function () {
+  const root = document.documentElement;
+  const show = () => root.classList.add('ready');
+  // No motion wanted, or a library failed to load: leave the static page as is.
+  if (!root.classList.contains('anim') || !window.gsap || !window.ScrollTrigger) {
+    root.classList.remove('anim'); show(); return;
+  }
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+  /* ---------- smooth scroll ---------- */
+  let lenis = null;
+  if (window.Lenis) {
+    lenis = new Lenis({ lerp: 0.1 });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(t => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+  }
+  const scrollTo = (target) => lenis ? lenis.scrollTo(target, { duration: 1.6 })
+    : (typeof target === 'number' ? window.scrollTo({ top: target, behavior: 'smooth' }) : target.scrollIntoView({ behavior: 'smooth' }));
+  $$('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+    const t = $(a.getAttribute('href'));
+    if (!t) return;
+    e.preventDefault(); stopWatch();
+    scrollTo(a.getAttribute('href') === '#top' ? 0 : t);
+  }));
+
+  /* ---------- text splitting ---------- */
+  // Words: each word (or inline element like <em>) gets a clipping box and an inner span that slides up.
+  function splitWords(el) {
+    const out = [];
+    [...el.childNodes].forEach(node => {
+      if (node.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach(part => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+          const wd = document.createElement('span'); wd.className = 'wd';
+          const wi = document.createElement('span'); wi.className = 'wi'; wi.textContent = part;
+          wd.appendChild(wi); frag.appendChild(wd); out.push(wi);
+        });
+        node.replaceWith(frag);
+      } else if (node.nodeType === 1 && node.tagName !== 'BR' && !node.classList.contains('per')) {
+        // (a trailing .per period is left unmasked so it can drop in from above)
+        const wd = document.createElement('span'); wd.className = 'wd';
+        const wi = document.createElement('span'); wi.className = 'wi';
+        node.replaceWith(wd); wi.appendChild(node); wd.appendChild(wi); out.push(wi);
+      }
+    });
+    return out;
+  }
+  function splitChars(el) {
+    const text = el.textContent; el.textContent = '';
+    return [...text].map(c => { const s = document.createElement('span'); s.className = 'ch'; s.textContent = c; el.appendChild(s); return s; });
+  }
+
+  /* ---------- counters ---------- */
+  function counter(el, trigger) {
+    const to = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0), suf = el.dataset.suffix || '';
+    const o = { v: 0 };
+    gsap.to(o, { v: to, duration: 1.8, ease: 'power3.out',
+      scrollTrigger: { trigger: trigger || el, start: 'top 88%' },
+      onUpdate: () => { el.textContent = o.v.toFixed(dec) + suf; } });
+  }
+
+  function init() {
+    /* ---------- intro: the set builds itself ---------- */
+    const chars = $$('.title .tl').flatMap(splitChars);
+    const intro = gsap.timeline({ defaults: { ease: 'expo.out' } });
+    intro
+      .from('.wall', { clipPath: 'inset(100% 0% 0% 0%)', duration: 1.2, ease: 'expo.inOut' })
+      .from('.floor', { yPercent: 100, duration: .9 }, '-=.55')
+      .from(chars, { yPercent: 115, duration: 1.1, stagger: .035 }, '-=.6')
+      .from('.title .ext', { y: () => -window.innerHeight * .6, duration: 1, ease: 'bounce.out' }, '-=.55')
+      .from('.hero blockquote p', { clipPath: 'inset(0% 100% 0% 0%)', duration: .9, ease: 'steps(36)', stagger: .3 }, '-=.5')
+      .from('.hud .pill', { y: -40, autoAlpha: 0, duration: .7, stagger: .05 }, '-=1.4')
+      .from('.hint', { autoAlpha: 0, duration: .6 }, '-=.3');
+
+    /* ---------- hero: strike the set on scroll ---------- */
+    gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: '+=90%', pin: true, scrub: .6 } })
+      .to('.hint', { autoAlpha: 0, duration: .15 }, 0)
+      .to('.wall-in', { yPercent: -35, scale: .92, transformOrigin: '0% 100%', ease: 'none' }, 0)
+      .to('.wall', { yPercent: -101, ease: 'power2.in' }, 0)
+      .to('.floor', { yPercent: 101, ease: 'power2.in' }, 0);
+
+    /* ---------- statement: a dot strikes each word, then becomes the period ---------- */
+    const say = $('.say'), dot = $('.hop');
+    const words = $$('.say-line .w'), pers = $$('.say-line .per');
+    const stops = [words[0], words[1], words[2], pers[0], words[3], words[4], words[5], pers[1]];
+    const D = () => dot.offsetWidth;
+    function pos(el) {
+      const r = el.getBoundingClientRect(), s = say.getBoundingClientRect();
+      const isPer = el.classList.contains('per');
+      return {
+        x: r.left - s.left + r.width / 2 - D() / 2,
+        y: isPer ? r.top - s.top + r.height * .76 - D() / 2 : r.top - s.top + r.height * .02 - D() * 1.25,
+      };
+    }
+    gsap.set(words, { opacity: .12 });
+    gsap.set(pers, { color: 'transparent' });
+    const st = gsap.timeline({ scrollTrigger: { trigger: say, start: 'top top', end: '+=240%', pin: true, scrub: .7, invalidateOnRefresh: true } });
+    st.fromTo(dot, { x: () => pos(stops[0]).x, y: () => pos(stops[0]).y - window.innerHeight * .5, autoAlpha: 0 },
+                   { y: () => pos(stops[0]).y, autoAlpha: 1, duration: 1, ease: 'power2.in' }, 0);
+    let t = 1;
+    stops.forEach((el, i) => {
+      if (i > 0) {
+        const prev = stops[i - 1];
+        const arc = () => Math.min(pos(prev).y, pos(el).y) - D() * 5;
+        st.to(dot, { x: () => pos(el).x, duration: 1, ease: 'none' }, t)
+          .to(dot, { y: arc, duration: .5, ease: 'power2.out' }, t)
+          .to(dot, { y: () => pos(el).y, duration: .5, ease: 'power2.in' }, t + .5);
+        t += 1;
+      }
+      // the strike
+      st.to(dot, { scaleX: 1.5, scaleY: .6, duration: .08, yoyo: true, repeat: 1, transformOrigin: '50% 100%' }, t);
+      if (el.classList.contains('per')) {
+        st.set(el, { color: 'var(--accent)' }, t + .02);
+        if (i === stops.length - 1) st.set(dot, { autoAlpha: 0 }, t + .02);
+      } else {
+        st.to(el, { opacity: 1, duration: .25 }, t)
+          .fromTo(el, { y: 0 }, { y: () => D() * .5, duration: .1, yoyo: true, repeat: 1, ease: 'power1.out' }, t);
+      }
+      t += .25;
+    });
+    st.from('.say-sub', { y: 40, autoAlpha: 0, duration: 1 }, t).to({}, { duration: .8 });
+    st.from('.say .meta', { autoAlpha: 0, y: 20, duration: .6 }, 0);
+
+    /* ---------- section headings: words rise out of their masks ---------- */
+    $$('h2.split, .feature h3.split').forEach(h => {
+      const w = splitWords(h);
+      gsap.from(w, { yPercent: 115, duration: 1.1, ease: 'expo.out', stagger: .06,
+        scrollTrigger: { trigger: h, start: 'top 85%' } });
+    });
+    $$('.head .meta, .head .sub, .contact .meta, .contact .sub').forEach(el =>
+      gsap.from(el, { y: 24, autoAlpha: 0, duration: 1, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 90%' } }));
+    gsap.from('.contact .per', { y: -260, duration: 1.1, ease: 'bounce.out', scrollTrigger: { trigger: '.contact h2', start: 'top 75%' } });
+
+    /* ---------- numbers count up ---------- */
+    $$('[data-count]').forEach(el => counter(el));
+
+    /* ---------- Whales: the card unmasks as you scroll ---------- */
+    gsap.fromTo('.feature', { clipPath: 'inset(14% 10% 14% 10% round 28px)' },
+      { clipPath: 'inset(0% 0% 0% 0% round 28px)', ease: 'none', scrollTrigger: { trigger: '.feature', start: 'top 95%', end: 'top 30%', scrub: .6 } });
+    gsap.from('.feature .side > *', { y: 50, autoAlpha: 0, duration: 1, ease: 'expo.out', stagger: .1, scrollTrigger: { trigger: '.feature', start: 'top 60%' } });
+
+    /* ---------- rows rise in, in batches ---------- */
+    const rise = (sel) => {
+      gsap.set(sel, { y: 70, autoAlpha: 0 });
+      ScrollTrigger.batch(sel, { start: 'top 90%', once: true,
+        onEnter: b => gsap.to(b, { y: 0, autoAlpha: 1, duration: 1.1, ease: 'expo.out', stagger: .12 }) });
+    };
+    rise('.proj'); rise('.role'); rise('.stat'); rise('.edu > div');
+
+    /* ---------- toolkit cards fan in and settle ---------- */
+    gsap.from('.kit > div', { y: 160, rotation: i => [-8, 5, -4][i], autoAlpha: 0, duration: 1.2, ease: 'back.out(1.4)', stagger: .12,
+      clearProps: 'transform', scrollTrigger: { trigger: '.kit', start: 'top 85%' } });
+
+    /* ---------- HUD: crumb follows the section; pills flip on paper ---------- */
+    const crumb = $('.crumb span');
+    let current = 'home';
+    $$('[data-crumb]').forEach(sec => ScrollTrigger.create({
+      trigger: sec, start: 'top 50%', end: 'bottom 50%',
+      onToggle: self => {
+        if (!self.isActive || current === sec.dataset.crumb) return;
+        current = sec.dataset.crumb;
+        gsap.timeline()
+          .to(crumb, { yPercent: -120, duration: .2, ease: 'power2.in' })
+          .add(() => { crumb.textContent = '## ' + current; })
+          .fromTo(crumb, { yPercent: 120 }, { yPercent: 0, duration: .35, ease: 'expo.out' });
+      } }));
+    $$('section.paper').forEach(sec => ScrollTrigger.create({
+      trigger: sec, start: 'top 40px', end: 'bottom 40px', toggleClass: { targets: root, className: 'hud-ink' } }));
+
+    gsap.to('.progress', { scaleX: 1, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: true } });
+
+    /* ---------- contact pills: a little magnetism ---------- */
+    if (matchMedia('(hover: hover)').matches) {
+      $$('.contact .pill').forEach(p => {
+        const xTo = gsap.quickTo(p, 'x', { duration: .5, ease: 'power3' }), yTo = gsap.quickTo(p, 'y', { duration: .5, ease: 'power3' });
+        p.addEventListener('mousemove', e => { const r = p.getBoundingClientRect(); xTo((e.clientX - r.left - r.width / 2) * .3); yTo((e.clientY - r.top - r.height / 2) * .4); });
+        p.addEventListener('mouseleave', () => { xTo(0); yTo(0); });
+      });
+    }
+
+    show();
+  }
+
+  /* ---------- watch: the page plays itself until you scroll ---------- */
+  const watchBtn = $('.watch');
+  let watching = false;
+  function stopWatch() {
+    if (!watching) return;
+    watching = false; watchBtn.classList.remove('on'); watchBtn.setAttribute('aria-pressed', 'false'); $('.lbl', watchBtn).textContent = 'watch';
+  }
+  watchBtn.addEventListener('click', () => {
+    if (watching) return stopWatch();
+    watching = true; watchBtn.classList.add('on'); watchBtn.setAttribute('aria-pressed', 'true'); $('.lbl', watchBtn).textContent = 'scroll';
+  });
+  gsap.ticker.add((time, dt) => {
+    if (!watching) return;
+    const y = (lenis ? lenis.scroll : scrollY) + dt * .12;
+    const max = document.documentElement.scrollHeight - innerHeight;
+    if (y >= max - 1) return stopWatch();
+    lenis ? lenis.scrollTo(y, { immediate: true }) : window.scrollTo(0, y);
+  });
+  ['wheel', 'touchstart'].forEach(ev => addEventListener(ev, stopWatch, { passive: true }));
+  addEventListener('keydown', e => { if (e.target !== watchBtn) stopWatch(); });
+
+  // Positions depend on the web fonts, so wait for them (but not forever).
+  Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), new Promise(r => setTimeout(r, 2000))])
+    .then(() => { init(); ScrollTrigger.refresh(); });
+})();
 </script>
 </body>
 </html>
